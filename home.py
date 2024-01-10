@@ -1,13 +1,14 @@
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 
+name = ""
+password = ""
+
 st.set_page_config(
      initial_sidebar_state="collapsed" 
 )
 
 # Create an empty container
-name = ""
-password = ""
 placeholder = st.empty()
 
 # Insert a form in the container
@@ -21,9 +22,7 @@ if submit and name != "" and password != "":
     # If the form is submitted and the email and password are correct,
     # clear the form/container and display a success message
     placeholder.empty()
-    print(name, password)
+    st.session_state.id = name+password
     switch_page("chat")
 elif submit and name != "" or password != "":
     st.error("Login failed")
-# else:
-#     pass
