@@ -1,16 +1,5 @@
-### Chat
+### Project Overview
 
+### Project Structure
 
-### Streamlit
-- st.chat_message
-    - 채팅 메시지 컨테이너에 메시지를 삽입하는 것
-    - 입력을 표시하고 입력을 읽는데에 사용
-- st.chat_input
-    - 사용자가 메시지를 입력할 수 있도록
-    - 세션 상태를 사용하여 채팅 기록 저장
-- with : 컨테이너에 요소를 추가하기 위함
-- st.markdown : 마크다운 형식으로 표시하기
-
-- 구성
-    - 2개의 채팅 메시지 컨테이너 : 사용자 / 봇
-    - 사용자가 메시지를 입력할 수 있는 채팅 입력 위젯
+### Installation

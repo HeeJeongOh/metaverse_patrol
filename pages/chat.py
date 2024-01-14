@@ -1,94 +1,115 @@
-from openai import OpenAI
+"""
+1. Setting
+    1.1 데이터베이스 연동 및 읽어오기
+    1.2 유저 설정
+        1.2.1 새로운 유저 -> 계정 등록 맟 초기화
+        1.2.2 기존 유저 -> 계정 설정 및 채팅 기록 불러오기
+2. Chat
+    2.1 대화 응답
+    2.2 위험상황 감지
+        1.2.1 유저 경고 수 증가
+    2.3 위험상황 횟수 초과 
+        2.3.1 사용자 IP / 아이디 / 비밀번호 
+        2.3.2 현재까지의 대화 모음
+        2.3.3 신고(?) / 강제 종료되기
+"""
 import streamlit as st
+from streamlit_modal import Modal
+from streamlit_extras.switch_page_button import switch_page
+from openai import OpenAI
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-# Replace 'path/to/your/credentials.json' with the path to your downloaded JSON file
-cred = credentials.Certificate('.streamlit/metaverse-patrol-firebase-adminsdk-uyg9e-7ccf8ecea3.json')
-firebase_admin.initialize_app(cred)
-db = firestore.client().collection('database')
+import prompt
 
+uid = st.session_state["id"]
 st.title("Chat Page Prototype")
-st.button("종료하기")
+
+if st.button("대화 종료하기"):
+    switch_page("home")
+
+
+##### Setting #####
 patrol = OpenAI(api_key=st.secrets["api_key"])
+# 1.1 데이터베이스 연동 및 읽어오기
+cred = credentials.Certificate('.streamlit/metaverse-patrol-firebase-adminsdk-uyg9e-7ccf8ecea3.json')
+try:
+    default_app = firebase_admin.get_app()
+except ValueError:
+    firebase_admin.initialize_app(cred)
 
-if "openai_model" not in st.session_state:
-    st.session_state["openai_model"] = "gpt-3.5-turbo"
+# 1.2 데이터베이스 읽어오기
+main_collection = firestore.client().collection('database')
+db = [doc.to_dict() for doc in main_collection.stream()]
 
-# Initialize chat history from previous sessions
-user_id = st.session_state.id
+# 로그인한 유저 불러오기
+get_user_query = main_collection.where('uid', '==', uid)
+user_data = [doc for doc in get_user_query.stream()]
+# st.write("user",user_data)
 
+# 1.2.1 새로운 유저인 경우, 계정 생성하기
+if user_data == []:
+    new_user = {
+        "uid": uid,
+        "cnt": 0,
+        "chat": []
+    }
+    main_collection.add(new_user)
+    user = new_user
+# 1.2.2 기존 유저인 경우, 채팅 기록 불러오기
+else:        
+    # 유저 세팅
+    user = user_data[0]
 
-user = db.where('uid', '==', 'test1234')
+    # # get chat documents
+    document_id = user_data[0].id
+    sub_collection = main_collection.document(document_id).collection('chat')
+    chat_history = [doc.to_dict() for doc in sub_collection.stream()]
+    # st.write("chat_history", chat_history)
 
-st.write("Data from Firestore:", data)
-database = TinyDB('./database/databse.json')
-
-user_table = database.table("user")
-warning_table = database.table("warn")
-user = Query()
-
-
-chat_history = user_table.search(where('user_id') == user_id)
+    for message in chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+        
+print(user)
 print(chat_history)
-
-if chat_history == []:
-    warning_table.insert({"user_id": user_id, "cnt": 0})
-
-# 이전 대화 기록이 존재한다면 다시 나타내기 (세션)
-for message in chat_history:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# := : 표현식의 결과를 할당하고 반환
+    
+   
+##### Chat #####
 # 유저 인풋 
 if prompt := st.chat_input("대화를 시작하세요"):
     # 채팅 기록에 추가
     user_message = {"role": "user", "content": prompt}
     chat_history.append(user_message)
-    user_table.insert(user_message) 
+    sub_collection.add(user_message) 
     
     # 화면에 표시
     with st.chat_message("user"):
         st.markdown(prompt)
+    
+    # 1. user_message의 위험도 확인하기
+    print(chat_history[-1:-3])
+    if isDangerous(user_message):
+        cnt = user.to_dict()["cnt"]
+        main_collection.document(user.id).update({"cnt": cnt+1})
 
-    # 1. user_message의 위험도 확인
-    user_cnt = warning_table.search(where('user_id') ==user_id)
-    print(user_cnt)
-    # isDanger = isDangerResponse()
-    # if isDanger:
-            # warning_table.update({'cnt' : str()}, user.roll_number == 1 )
+        print(user.to_dict()["cnt"])
+        if cnt >= 3:
+            print("caught")
+            modal = Modal(title="채팅이 종료되었습니다")
+            modal.open()
+            with modal.container():
+                st.write('당신은 부적절한 대화를 수행하여 아동으로부터 성착취를 시도하였습니다.')
+           
 
-    #     warning_table.update(increment("cnt"), Query().user_id == user_id)
-    #     if user.search[""]
-
-    # 봇의 응답
+    # 2. 대화에 응답하기
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         assistant_response = ""
-        assistant_response = random.choice([
-            "Hello there! How can I assist you today?",
-            "Hi, human! Is there anything I can help you with?",
-            "Do you need help?",
-        ])
-        
-        ######## GPT 통신 ########
-   
-        ### 2. 대화에 응답하기
-        # for response in patrol.chat.completions.create( 
-        #     model=st.session_state["openai_model"],
-        #     messages=[
-        #         {"role": m["role"], "content": m["content"]} for m in chat_history
-        #     ],
-        #     stream=True
-        # ):
-        #     assistant_response += (response.choices[0].delta.content or "")
-        #     message_placeholder.markdown("▌")
-        
-        ### 
+        assistant_response = getResponse(patrol)
         message_placeholder.markdown(assistant_response)
     
         assistant_message = {"role": "assistant", "content": assistant_response}
         chat_history.append(assistant_message)
-        user_table.insert(assistant_message)
+        sub_collection.add(assistant_message)
 

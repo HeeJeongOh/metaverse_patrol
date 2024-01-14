@@ -18,13 +18,12 @@ with placeholder.form("login"):
     password = st.text_input("Password", type="password")
     submit = st.form_submit_button("Start")
 
-
-if submit and name == "" or password == "":
-    st.error("Login failed")
-
-elif submit and name != "" and password != "":
+if submit and name != "" and password != "":
     # If the form is submitted and the email and password are correct,
     # clear the form/container and display a success message
     placeholder.empty()
     st.session_state.id = name+password
-    switch_page("chat2")
+    switch_page("chat")
+elif submit and name == "" or password == "":
+    st.error("Login failed")
+
