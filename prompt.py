@@ -2,7 +2,7 @@ import random
 import streamlit as st
 from openai import OpenAI
 
-# 취약대상으로 가장하기
+### 취약대상으로 가장하기
 def setSettingPrompt(patrol):
     settingMessage = f"""
         당신(Chat GPT)는 지금부터 8살 여자아이를 연기해야 합니다. 
@@ -55,8 +55,7 @@ def getResponse(patrol):
                 assistant_response += (response.choices[0].delta.content or "")   
     return assistant_response
 
-# 위험발언 여부 판단하기
-
+### 위험발언 여부 판단하기
 def isDangerous2(message):
     print(message)
     askingMessage = f"""
@@ -92,21 +91,17 @@ def isDangerous2(message):
         return True
     return False
 
-
-
 from googletrans import Translator
-# from deeppavlov import build_model
+from deeppalov import build_model
 def isDangerous(message):
     # 1. 번역
     translator = Translator()
     translated = translator.translate(message, 'en', 'ko')
     # 2. 모델 인퍼런스
-    # model = build_model('insults_kaggle_bert', download=True, install=True)
-    # label = model([message])
-    
-    lab
+    model = build_model('insults_kaggle_bert', download=True, install=True)
+    label = model([message])
+
     if label[0] == "Insult":
         return True
     else:
         return False
-    

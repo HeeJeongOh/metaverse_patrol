@@ -19,13 +19,10 @@ from openai import OpenAI
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-import prompt
+from prompt import getResponse, isDangerous
 
 uid = st.session_state["id"]
 st.title("Chat Page Prototype")
-
-if st.button("대화 종료하기"):
-    switch_page("home")
 
 
 ##### Setting #####
@@ -95,11 +92,8 @@ if prompt := st.chat_input("대화를 시작하세요"):
         print(user.to_dict()["cnt"])
         if cnt >= 3:
             print("caught")
-            modal = Modal(title="채팅이 종료되었습니다")
-            modal.open()
-            with modal.container():
-                st.write('당신은 부적절한 대화를 수행하여 아동으로부터 성착취를 시도하였습니다.')
-           
+            switch_page("end")
+
 
     # 2. 대화에 응답하기
     with st.chat_message("assistant"):
