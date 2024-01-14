@@ -14,7 +14,6 @@
         2.3.3 신고(?) / 강제 종료되기
 """
 import streamlit as st
-from streamlit_modal import Modal
 from streamlit_extras.switch_page_button import switch_page
 from openai import OpenAI
 import firebase_admin

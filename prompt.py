@@ -95,15 +95,16 @@ def isDangerous2(message):
 
 
 from googletrans import Translator
-from deeppavlov import build_model
+# from deeppavlov import build_model
 def isDangerous(message):
     # 1. 번역
     translator = Translator()
     translated = translator.translate(message, 'en', 'ko')
     # 2. 모델 인퍼런스
-    model = build_model('insults_kaggle_bert', download=True, install=True)
-    label = model([message])
+    # model = build_model('insults_kaggle_bert', download=True, install=True)
+    # label = model([message])
     
+    lab
     if label[0] == "Insult":
         return True
     else:
