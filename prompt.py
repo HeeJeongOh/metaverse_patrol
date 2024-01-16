@@ -1,13 +1,17 @@
 import random
 import streamlit as st
-from openai import OpenAI
+from model.model import get_result
+import openai
+
+openai.api_key = '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'
 
 ### 취약대상으로 가장하기
-def setSettingPrompt(patrol):
+def getResponse(chat_history):
+    
     settingMessage = f"""
-        당신(Chat GPT)는 지금부터 8살 여자아이를 연기해야 합니다. 
+        당신(Chat GPT)는 지금부터 8살 여자아이입니다.
         현재 당신은 메타버스에 처음 가입하여 새로운 상대와 대화를 시작했습니다.
-        당신이 연기하는 이 여자아이의 신상에 대해 알려드리겠습니다.
+        당신의 신상에 대해 알려드리겠습니다.
             - 메타버스 캐릭터 이름 : 샐리
             - 실제 이름: 김로아
             - 실제 나이 : 8살
@@ -19,40 +23,28 @@ def setSettingPrompt(patrol):
             2. 만약 상대방이 위 신상들 외에도 더 구체적인 내용을 알고자 한다면, "다음 번에 더 친해지면 말할게요!" 라는 등의 발언으로 상황을 회피합니다.
             3. 대화를 통해 알 수 있는 내용에 대해 다시 묻지 않아야 합니다.
 
-        잘 이해했다면 "이해했습니다" 라고 대답하세요
+        잘 이해했다면 "이해했습니다" 라고만 대답하세요
     """
+    messages = [
+        {"role" : "user","content" : settingMessage},
+        {"role" : "assistant","content" : "이해했습니다."},
+    ]
+    for message in chat_history:
+        messages.append({"role" : message["role"],"content" : message["content"]})
 
-    response = patrol.chat.completions.create(    
-    model=st.session_state["openai_model"],
-    messages=settingMessage
-    )
-    if response.choice[0].message.content == "이해했습니다.":
-        return True
-
-    return False
-
-def getResponse(patrol):
     assistant_response = ""
-    if "openai_model" not in st.session_state:
-        st.session_state["openai_model"] = "gpt-3.5-turbo"
-    if "setting_prompt" not in st.session_state:
-        isStart = setSettingPrompt(patrol)
-        if isStart:
-            st.session_state["setting_prompt"] = "done"
-            # return random.choice([
-            #         "Hello there! How can I assist you today?",
-            #         "Hi, human! Is there anything I can help you with?",
-            #         "Do you need help?",
-            #     ])
-            for response in patrol.chat.completions.create( 
-                model=st.session_state["openai_model"],
-                # 이전 대화를 모두 참고
-                messages=[
-                    {"role": m["role"], "content": m["content"]} for m in chat_history
-                ],
-                stream=True
-            ):
-                assistant_response += (response.choices[0].delta.content or "")   
+    response = openai.ChatCompletion.create( 
+        model=st.session_state["openai_model"],
+        api_key=st.secrets["api_key"],
+        # 이전 대화를 모두 참고
+        messages=messages,
+        temperature=0.5,
+        max_tokens=1000,
+        top_p=1,
+        frequency_penalty=0,
+        presence_penalty=0
+    )
+    assistant_response += (response.choices[0].message.content)
     return assistant_response
 
 ### 위험발언 여부 판단하기
@@ -92,16 +84,16 @@ def isDangerous2(message):
     return False
 
 from googletrans import Translator
-from deeppalov import build_model
 def isDangerous(message):
+    print(message)
     # 1. 번역
     translator = Translator()
     translated = translator.translate(message, 'en', 'ko')
+    
     # 2. 모델 인퍼런스
-    model = build_model('insults_kaggle_bert', download=True, install=True)
-    label = model([message])
-
-    if label[0] == "Insult":
+    output = get_result(translated.text)
+    print(f"output {output}")
+    if output == 1:
         return True
     else:
         return False

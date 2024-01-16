@@ -13,9 +13,9 @@
         2.3.2 현재까지의 대화 모음
         2.3.3 신고(?) / 강제 종료되기
 """
+import openai
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
-from openai import OpenAI
 import firebase_admin
 from firebase_admin import credentials, firestore
 
@@ -26,7 +26,9 @@ st.title("Chat Page Prototype")
 
 
 ##### Setting #####
-patrol = OpenAI(api_key=st.secrets["api_key"])
+if "openai_model" not in st.session_state:
+    st.session_state["openai_model"] = "gpt-3.5-turbo"
+
 # 1.1 데이터베이스 연동 및 읽어오기
 cred = credentials.Certificate('.streamlit/metaverse-patrol-firebase-adminsdk-uyg9e-7ccf8ecea3.json')
 try:
@@ -60,15 +62,13 @@ else:
     # # get chat documents
     document_id = user_data[0].id
     sub_collection = main_collection.document(document_id).collection('chat')
-    chat_history = [doc.to_dict() for doc in sub_collection.stream()]
+    ssub = sub_collection.order_by("idx")
+    chat_history = [doc.to_dict() for doc in ssub.stream()]
     # st.write("chat_history", chat_history)
-
+    # chat_history.sort(lambda x: x["idx"])
     for message in chat_history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-        
-print(user)
-print(chat_history)
     
    
 ##### Chat #####
@@ -77,15 +77,16 @@ if prompt := st.chat_input("대화를 시작하세요"):
     # 채팅 기록에 추가
     user_message = {"role": "user", "content": prompt}
     chat_history.append(user_message)
-    sub_collection.add(user_message) 
+    tmp = {"idx": len(chat_history)+1, "role": "user", "content": prompt}
+    sub_collection.add(tmp) 
     
     # 화면에 표시
     with st.chat_message("user"):
         st.markdown(prompt)
     
     # 1. user_message의 위험도 확인하기
-    print(chat_history[-1:-3])
-    if isDangerous(user_message):
+    print(user.to_dict()["cnt"])
+    if isDangerous(prompt):
         cnt = user.to_dict()["cnt"]
         main_collection.document(user.id).update({"cnt": cnt+1})
 
@@ -99,10 +100,11 @@ if prompt := st.chat_input("대화를 시작하세요"):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         assistant_response = ""
-        assistant_response = getResponse(patrol)
+        assistant_response = getResponse(chat_history=chat_history)
         message_placeholder.markdown(assistant_response)
     
         assistant_message = {"role": "assistant", "content": assistant_response}
         chat_history.append(assistant_message)
-        sub_collection.add(assistant_message)
+        tmp2 = {"idx": len(chat_history)+1, "role": "assistant", "content": assistant_response}
+        sub_collection.add(tmp2)
 

@@ -2,8 +2,6 @@ import streamlit as st
 import firebase_admin
 from firebase_admin import credentials, firestore
 
-st.title("대화가 종료되었습니다.")
-
 uid = st.session_state["id"]
 
 # 1.1 데이터베이스 연동 및 읽어오기
@@ -25,4 +23,5 @@ document_id = user_data[0].id
 
 sub_collection = main_collection.document(document_id).collection('chat')
 chat_history = [doc.to_dict() for doc in sub_collection.stream()]
-st.markdown(chat_history)
+for item in chat_history:
+    st.markdown(f"{item['role']} : {item['content']}")

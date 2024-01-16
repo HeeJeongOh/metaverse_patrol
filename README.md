@@ -1,5 +1,3 @@
-### Project Overview
+source metaverse/bin/activate
 
-### Project Structure
-
-### Installation
+streamlit run home.py
