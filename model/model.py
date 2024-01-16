@@ -20,5 +20,8 @@ def get_result(message):
     insult_transformed = lst.reshape(1, -1)
     
     result = forest_model.predict(insult_transformed)[0]
+    xwords = ["kiss", "sex", "body", "secret", "underwear", "fuck"]
+    if any ((c in xwords) for c in message):
+        result = 1
     return result
     
